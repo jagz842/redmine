@@ -1,5 +1,8 @@
 # Git integration
 
+For repositories on your separate GitLab server, follow
+[Add another GitLab repository](GITLAB_INTEGRATION.md).
+
 Redmine browses a local Git mirror to display source files, branches, commits,
 and diffs, and associate commits with issues. GitHub remains the remote Git
 host. This guide documents the working Docker setup for this repository.

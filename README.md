@@ -700,6 +700,7 @@ storage.
 ## Documentation
 
 - [Git integration](docs/GIT_INTEGRATION.md)
+- [Add another GitLab repository](docs/GITLAB_INTEGRATION.md)
 - [Installation and upgrade](docs/INSTALLATION.md)
 - [Backup and restore](docs/BACKUP_RESTORE.md)
 - [Migration from Redmine 4.2.5](docs/MIGRATION.md)
