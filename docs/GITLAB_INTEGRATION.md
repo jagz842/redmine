@@ -6,12 +6,12 @@ GitLab hosts the source; the Redmine host fetches a local Git mirror, which
 Redmine reads through the existing read-only Docker mount:
 
 ```text
-GitLab server → SSH fetch on Redmine host → /var/lib/redmine/repos/new-repo.git
+GitLab server → SSH fetch on Redmine host → /var/lib/redmine/repo/new-repo.git
                                                ↓ read-only Docker mount
                                           Redmine project
 ```
 
-The checked-in `compose.yml` already mounts `/var/lib/redmine/repos` at the
+The checked-in `compose.yml` already mounts `/var/lib/redmine/repo` at the
 same path inside Redmine. Adding another mirror there needs no Compose change
 or container restart. This guide assumes that mount is active in your running
 deployment. It does not require a GitLab integration plugin or webhook.
@@ -102,16 +102,16 @@ GitLab, the checkout, or the Redmine container.
 
 ## 3. Create the new mirror on the Redmine host
 
-The existing `/var/lib/redmine/repos` directory should already be writable by
+The existing `/var/lib/redmine/repo` directory should already be writable by
 your mirror account. Check before cloning:
 
 ```bash
-test -w /var/lib/redmine/repos
+test -w /var/lib/redmine/repo
 
 git clone --mirror git@gitlab-redmine-new-repo:group/subgroup/new-repo.git \
-  /var/lib/redmine/repos/new-repo.git
+  /var/lib/redmine/repo/new-repo.git
 
-git -C /var/lib/redmine/repos/new-repo.git log -1 --oneline
+git -C /var/lib/redmine/repo/new-repo.git log -1 --oneline
 ```
 
 If the write check fails, have the host administrator grant your mirror
@@ -120,7 +120,7 @@ recursively change ownership of existing mirrors.
 
 Use a separate mirror rather than a development working directory. If the
 mirror already exists, verify its remote with `git -C
-/var/lib/redmine/repos/new-repo.git remote -v` and fetch it instead of cloning
+/var/lib/redmine/repo/new-repo.git remote -v` and fetch it instead of cloning
 over it. An empty GitLab repository must receive its first commit before a
 commit log or source browsing can be verified.
 
@@ -131,7 +131,7 @@ From your deployment checkout:
 ```bash
 cd /path/to/redmine
 docker compose exec --user redmine redmine \
-  git --git-dir=/var/lib/redmine/repos/new-repo.git log -1 --oneline
+  git --git-dir=/var/lib/redmine/repo/new-repo.git log -1 --oneline
 ```
 
 This should show a commit for a nonempty repository. Resolve any read or path
@@ -144,7 +144,7 @@ access to directories; fetching remains the host account's job.
 2. Open the Redmine project that should display this GitLab repository.
 3. Under **Settings → Modules**, enable **Repository** if necessary.
 4. Open **Settings → Repositories → New repository** and select **Git**.
-5. Enter `/var/lib/redmine/repos/new-repo.git` as **Path to repository**
+5. Enter `/var/lib/redmine/repo/new-repo.git` as **Path to repository**
    (sometimes labelled **Path to .git directory**).
 6. Set a unique repository identifier within the project, for example
    `new-repo`. Select **Main repository** if this should be the default.
@@ -164,7 +164,7 @@ content through Redmine, independently of their GitLab account permissions.
 First test a manual fetch as the mirror-owning host account:
 
 ```bash
-git -C /var/lib/redmine/repos/new-repo.git remote update --prune
+git -C /var/lib/redmine/repo/new-repo.git remote update --prune
 ```
 
 Open that account's `crontab -e`. Preserve existing schedules and add one new
@@ -174,14 +174,14 @@ entry for this mirror, with the following environment if not already present:
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-*/5 * * * * /usr/bin/flock -n /var/lib/redmine/repos/new-repo.fetch.lock /usr/bin/git -C /var/lib/redmine/repos/new-repo.git remote update --prune >> /var/lib/redmine/repos/new-repo.fetch.log 2>&1
+*/5 * * * * /usr/bin/flock -n /var/lib/redmine/repo/new-repo.fetch.lock /usr/bin/git -C /var/lib/redmine/repo/new-repo.git remote update --prune >> /var/lib/redmine/repo/new-repo.fetch.log 2>&1
 ```
 
 Check `systemctl status cron` on Ubuntu/Debian and inspect the log after the
 first scheduled run:
 
 ```bash
-tail -n 50 /var/lib/redmine/repos/new-repo.fetch.log
+tail -n 50 /var/lib/redmine/repo/new-repo.fetch.log
 ```
 
 Each mirror needs its own schedule, lock, and log. Arrange log rotation.
@@ -215,7 +215,7 @@ an existing issue number, for example `Update documentation, refs #123`.
 | SSH timeout or name resolution failure | DNS, routing, firewall, and the GitLab SSH port from the Redmine host |
 | `Permission denied (publickey)` or repository not found | Correct SSH key, clone path, and deploy key enabled on the new GitLab project |
 | Manual fetch works but cron fails | Same Linux account, SSH config, trusted host key, noninteractive key access, cron service, and fetch log |
-| Container cannot find the repository | Mirror under `/var/lib/redmine/repos`, active bind mount, and exact Redmine path |
+| Container cannot find the repository | Mirror under `/var/lib/redmine/repo`, active bind mount, and exact Redmine path |
 | Container reports permission denied | Host mirror permissions and Redmine's ability to traverse parent directories and read files; follow existing mirror access policy |
 | Git reports dubious ownership | Trust only the specific mirror path in persistent Git configuration visible to the Redmine user; see the general Git guide |
 | Latest commit exists in the mirror but is absent in Redmine | Import changesets and check the selected repository and branch |
