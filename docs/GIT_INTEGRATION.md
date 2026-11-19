@@ -20,7 +20,7 @@ For a private repository, a read-only deploy key can provide that access.
 sudo mkdir -p /var/lib/redmine/repo
 sudo chown ubuntu:ubuntu /var/lib/redmine/repo
 
-git clone --mirror git@github.com:jahangir842/redmine.git \
+git clone --mirror ssh://git@192.168.1.208:2222/project-name.git \
   /var/lib/redmine/repo/myproject.git
 
 git --git-dir=/var/lib/redmine/repo/myproject.git log -1 --oneline
